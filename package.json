@@ -1,0 +1,19 @@
+{
+  "name": "aws-a2",
+  "version": "1.0.0",
+  "description": "Assignment 2 - Cloud Computing",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.js"
+  },
+  "author": "Daniel Otto",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.72.0",
+    "aws-sdk": "^2.1116.0",
+    "express": "^4.17.3",
+    "node-fetch": "^3.2.3",
+    "nodemon": "^2.0.15"
+  }
+}

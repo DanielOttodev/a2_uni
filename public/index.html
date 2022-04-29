@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Compiled and minified CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+
+    <title>Main Page</title>
+</head>
+
+<body>
+    <h1 class="center-align">Main Page</h1>
+    <h6 class="center-align"> <a href="/login.html">Logout</a> </h6>
+    <div class="container" id="userArea">
+        <h5 id="username"></h5>
+    </div>
+
+    <div style="margin-top:50px;" class="container" id="subArea">
+        <h6 style="font-weight:bold;">Active Subscriptions</h6>
+        <table id="musicArea">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Artist</th>
+                    <th>Year</th>
+                    <th>Info</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody id="musicTable">
+
+            </tbody>
+        </table>
+    </div>
+    <div style="margin-top:100px;" class="container" id="queryArea">
+        <h6 style="font-weight:bold;">Query</h6>
+
+        <div class="row">
+            <div class="col s6">
+                <label for="title">Title</label>
+                <input type="text" name="title" id="title">
+            </div>
+            <div class="col s6">
+                <label for="year">Year</label>
+                <input type="text" name="year" id="year">
+                <label for="pass">Artist</label>
+                <input type="text" name="artist" id="artist">
+            </div>
+            <div class="row">
+                <button id="queryBtn" style="width:100%; margin-top:25px;" class="btn-small">Search</button>
+            </div>
+        </div>
+        
+    <div style="margin-top:50px;" class="container" id="queryResult">
+        <h6 style="font-weight:bold;">Search Result:</h6>
+        <table id="musicArea">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Artist</th>
+                    <th>Year</th>
+                    <th>Info</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody id="resultTable">
+
+            </tbody>
+        </table>
+    </div>
+
+    </div>
+
+
+    <script>
+        let _email = sessionStorage.getItem("email");
+        console.log(_email)
+
+        function load() {
+            fetch('/api/user', {
+                method: 'post',
+                headers: {
+                    'content-type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: _email
+                })
+            }).then(response => response.json()).then((x) => {
+                document.getElementById('username').textContent = x.user_name.S
+            })
+
+            getSongs();
+        }
+        load();
+
+
+        function getSongs() {
+            fetch('/dynamo/getSongs').then(response => response.json()).then(x => {
+                for (y = 0; y < x.length; y++) {
+ 
+                    if (x[y].subscribed.BOOL) {
+                        console.log('Adding')
+                        newRow(
+                            
+                            x[y].title.S, x[y].artist.S, x[y].year.S, x[y].img_url.S
+                        )
+                    }
+
+                }
+                console.log(x);
+            })
+        }
+        document.getElementById('queryBtn').addEventListener('click',(e) => {
+            let title = document.getElementById('title').textContent;
+            let year = document.getElementById('year').textContent;
+            let artist = document.getElementById('artist').textContent;
+            fetch('/dynamo/getSongs').then(response => response.json()).then(x => {
+                for (y = 0; y < x.length; y++) {
+                  //  console.log(x[y].subscribed.BOOL)
+                    if (!x[y].subscribed.BOOL) {
+                        newRow2(
+                            x[y].title.S, x[y].artist.S, x[y].year.S, x[y].img_url.S
+                        )
+                    }
+
+                }
+                console.log(x);
+            })
+        })
+
+        function newRow(title, artist, year, info) {
+            let bases3 = 'https://a2-uni.s3.ap-southeast-2.amazonaws.com/'
+            let len = info.split("/").length;
+             info = bases3 +  info.split("/")[len-1];
+            const mt = document.getElementById('musicTable')
+            
+            const nr = document.createElement('tr')
+            const titleRow = document.createElement('td')
+            const artistRow = document.createElement('td')
+            const yearRow = document.createElement('td')
+            const infoRow = document.createElement('td')
+            const btnRow = document.createElement('td')
+            const removeLink = document.createElement('button')
+            removeLink.textContent = 'Remove'
+            removeLink.classList.add('btn-small', 'deep-orange', 'accent-2')
+            removeLink.addEventListener('click', (e) => {
+              //  console.log(e.target.parentElement.parentElement.firstChild.textContent)
+                let song = e.target.parentElement.parentElement.firstChild.textContent;
+                //e.target.parentElement.parentElement.firstChild.textContent
+                let node = e.target.parentElement.parentElement.remove()
+                fetch('/dynamo/delSong', {
+                    method: 'POST',
+                    headers: {
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: song,
+                        artist: artist,
+                        
+                    })
+                }).then(response => response.text()).then(x => {
+                    if (x === 'true') {
+                        node.remove()
+                    } else {
+                        alert(x);
+                    }
+                })
+            })
+            btnRow.appendChild(removeLink);
+            const infoImgUrl = document.createElement('img')
+            infoImgUrl.setAttribute('src', info)
+            infoImgUrl.classList.add('circle')
+            infoImgUrl.style = "width:70px; height :70px;"
+            titleRow.textContent = title
+            artistRow.textContent = artist;
+            yearRow.textContent = year;
+            console.log(infoImgUrl)
+            infoRow.appendChild(infoImgUrl);
+            nr.appendChild(titleRow)
+            nr.appendChild(artistRow)
+            nr.appendChild(yearRow)
+            nr.appendChild(infoRow)
+            nr.appendChild(btnRow);
+            mt.appendChild(nr);
+
+        }
+        
+        function newRow2(title, artist, year, info) {
+
+            let bases3 = 'https://a2-uni.s3.ap-southeast-2.amazonaws.com/'
+            let len = info.split("/").length;
+             info = bases3 +  info.split("/")[len-1];
+            const mt = document.getElementById('resultTable')
+            const nr = document.createElement('tr')
+            const titleRow = document.createElement('td')
+            const artistRow = document.createElement('td')
+            const yearRow = document.createElement('td')
+            const infoRow = document.createElement('td')
+            const btnRow = document.createElement('td')
+            const removeLink = document.createElement('button')
+            removeLink.textContent = 'SUBSCRIBE'
+            removeLink.classList.add('btn-small', 'deep-green', 'accent-2')
+            removeLink.addEventListener('click', (e) => {
+              //  console.log(e.target.parentElement.parentElement.firstChild.textContent)
+                let song = e.target.parentElement.parentElement.firstChild.textContent;
+                //e.target.parentElement.parentElement.firstChild.textContent
+                let node = e.target.parentElement.parentElement.remove()
+                fetch('/dynamo/addSong', {
+                    method: 'POST',
+                    headers: {
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: song,
+                        artist: artist,
+                        year: year
+                    })
+                }).then(response => response.text()).then(x => {
+                    if (x === 'true') {
+                        node.remove()
+                        const mt = document.getElementById('musicTable').innerHTML = ''
+                        newRow();
+                    } else {
+                        alert(x);
+                    }
+                })
+            })
+            btnRow.appendChild(removeLink);
+            const infoImgUrl = document.createElement('img')
+            infoImgUrl.setAttribute('src', info)
+            infoImgUrl.classList.add('circle')
+            infoImgUrl.style = "width:70px; height :70px;"
+            titleRow.textContent = title
+            artistRow.textContent = artist;
+            yearRow.textContent = year;
+            console.log(infoImgUrl)
+            infoRow.appendChild(infoImgUrl);
+            nr.appendChild(titleRow)
+            nr.appendChild(artistRow)
+            nr.appendChild(yearRow)
+            nr.appendChild(infoRow)
+            nr.appendChild(btnRow);
+            mt.appendChild(nr);
+
+        }
+    </script>
+    <style>
+        tbody {
+            margin-top: 5px;
+            display: block;
+            height: 500px;
+            overflow: auto;
+            border: 1px rgba(125, 125, 125, 0.332) solid;
+            border-radius: 10px;
+        }
+
+        thead,
+        tbody tr {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        thead {
+            width: calc(100% - 1em)
+        }
+
+        table {
+            width: 100%;
+        }
+    </style>
+</body>
+
+</html>
